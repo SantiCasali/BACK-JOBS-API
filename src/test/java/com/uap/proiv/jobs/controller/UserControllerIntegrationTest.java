@@ -11,13 +11,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
-
-
-import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
-
-// Test de Integración
-//Se tiene que levantar todo el contexto
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -30,17 +23,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.test.web.servlet.MockMvc;
 
-
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.time.Duration;
 
-//Shift + alt + o para llenar los imports automaticamente en vsCode
-
 @SpringBootTest
 @AutoConfigureMockMvc
 public class UserControllerIntegrationTest {
-    
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -52,8 +42,6 @@ public class UserControllerIntegrationTest {
 
     static MockWebServer mockWebServer;
 
-    //Preparar con el metodo setup lo que Vamos a ir creando
-    
     @BeforeAll
     static void setup() throws IOException {
         mockWebServer = new MockWebServer();
@@ -66,57 +54,54 @@ public class UserControllerIntegrationTest {
     }
 
     @TestConfiguration
-    static class TestConfig
-    {
+    static class TestConfig {
         @Bean
         @Primary
-        public UserApiRepository userApiRepository(ObjectMapper objectMapper)
-        {
-            HttpClient httpClient = HttpClient.newBuilder()  // Simulamos la llamada a la API externa
+        public UserApiRepository userApiRepository(ObjectMapper objectMapper) {
+            HttpClient httpClient = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(10))
                     .build();
             String baseUrl = mockWebServer.url("/api/users").toString();
-            String apikey = "free_user_3HYTiqu2JKQ4TfGq884xW5mqfrd";
+            String apiKey = "free_user_3HYTiqu2JKQ4TfGq884xW5mqfrd";
 
-            return  new UserApiRepository(httpClient, objectMapper, baseUrl, apikey);
+            return new UserApiRepository(httpClient, objectMapper, baseUrl, apiKey);
         }
     }
 
     @Test
-    @DisplayName("Get api/users/{id} integracion UserController, userService, UserRepository Mock de la API exterma")
-        void  getUserById()throws Exception {
-            String jsonResponse = """
-                    {
-                    "id":2,
-                    "email":"john.doe@example.com",
-                    "first_name":"Juan",
-                    "last_name":"Perez",
-                    "avatar": "https://reqres.in/img/faces/2.jpg"
-                    }
-                    """;
-            mockWebServer.enqueue(new MockResponse() //Mockea lo externos
-                    .setBody(jsonResponse)
-                    .setResponseCode(200)
-                    .addHeader("Content-Type", "application/json")
-            );
+    @DisplayName("Get api/users/{id} integration UserController, UserService, UserRepository, mocked external API")
+    void getUserById() throws Exception {
+        String jsonResponse = """
+                {
+                "id":2,
+                "email":"john.doe@example.com",
+                "first_name":"Juan",
+                "last_name":"Perez",
+                "avatar": "https://reqres.in/img/faces/2.jpg"
+                }
+                """;
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(jsonResponse)
+                .setResponseCode(200)
+                .addHeader("Content-Type", "application/json")
+        );
 
-            mockMvc.perform(get("/api/user/id/2")) //Es mi llamada a la API interna
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(jsonPath("$.id").value(2))
-                    .andExpect(jsonPath("$.email").value("john.doe@example.com"))
-                    .andExpect(jsonPath("$.first_name").value("Juan"))
-                    .andExpect(jsonPath("$.last_name").value("Perez"))
-                    .andExpect(jsonPath("$.avatar").value("https://reqres.in/img/faces/2.jpg"));
+        mockMvc.perform(get("/api/user/id/2"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(2))
+                .andExpect(jsonPath("$.email").value("john.doe@example.com"))
+                .andExpect(jsonPath("$.first_name").value("Juan"))
+                .andExpect(jsonPath("$.last_name").value("Perez"))
+                .andExpect(jsonPath("$.avatar").value("https://reqres.in/img/faces/2.jpg"));
 
         RecordedRequest request = mockWebServer.takeRequest();
         assertEquals("application/json", request.getHeader("Accept"));
         assertEquals("free_user_3HYTiqu2JKQ4TfGq884xW5mqfrd", request.getHeader("X-API-KEY"));
-
     }
 
     @Test
-    @DisplayName("Post /api/user/update integracion UserControleler, UserService, UserRepository, mock API externa")
+    @DisplayName("Post /api/user/update integration UserController, UserService, UserRepository, mocked external API")
     void updateUser() throws Exception {
         String updateResponse = """
                 {
@@ -143,8 +128,8 @@ public class UserControllerIntegrationTest {
         mockMvc.perform(post("/api/user/update")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(userJson))
-        .andExpect(status().isOk())
-        .andExpect(content().string("User created successfully"));
+                .andExpect(status().isOk())
+                .andExpect(content().string("User created successfully"));
 
         RecordedRequest request = mockWebServer.takeRequest();
         assertEquals("PUT", request.getMethod());
@@ -152,5 +137,4 @@ public class UserControllerIntegrationTest {
         assertEquals("application/json", request.getHeader("Accept"));
         assertEquals("free_user_3HYTiqu2JKQ4TfGq884xW5mqfrd", request.getHeader("X-API-KEY"));
     }
-
 }
